@@ -82,7 +82,7 @@ class HybridRetriever:
         top_k: Final number of chunks returned after fusion
         rrf_k: RRF dampening constant
     """
-    self.retrieval_l=retrieval_k
+    self.retrieval_k=retrieval_k
     self.top_k=top_k
     self.rrf_k=rrf_k
 
@@ -109,6 +109,15 @@ class HybridRetriever:
       f"{len(self.bm25_chunks):,}BM25 docs"
       ) 
     
+    if self.collection.count() != len(self.bm25_chunks):
+      print(
+        f"\n Warning index mismatch detected!\n"
+        f"   ChromaDB has {self.collection.count():,} vectors but "
+                f"BM25 has {len(self.bm25_chunks):,} documents.\n"
+                f"   Re-run the ingestion pipeline to fix:\n"
+                f"   python -m src.ingestion.pipeline --chunk-size 512\n"
+      )
+    
   def _dense_search(self,query:str) -> List[Tuple[str,str,dict]]:
     query_embedding = embed_query(query).tolist()
     results = self.collection.query(
@@ -123,6 +132,17 @@ class HybridRetriever:
       meta=results["metadatas"][0][i]
       output.append((doc_id,text,meta))
     return output
+  def _bm25_search(self, query: str) -> List[Tuple[str, str, dict]]:
+        tokens = tokenize_for_bm25(query)
+        scores = self.bm25.get_scores(tokens)
+        top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[: self.retrieval_k]
+
+        output = []
+        for idx in top_indices:
+            chunk = self.bm25_chunks[idx]
+            chunk_id = f"{chunk.metadata.get('source', 'doc')}_{chunk.metadata.get('chunk_index', idx)}"
+            output.append((chunk_id, chunk.text, chunk.metadata))
+        return output
   
   def retrieve(self,query:str,mode: str = "hybrid") -> List[RetrievedChunk]:
     """

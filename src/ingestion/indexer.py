@@ -125,7 +125,26 @@ class DualIndexer:
       )
     print(f"Saved BM25 index to {BM25_INDEX_PATH}")
 
-  def index_chunks(self, chunks: List[Chunk], batch_size: int = 256):
+  def reset_collection(self):
+    """
+    Delete and recreate the ChromaDB collection.
+    Called before indexing to guarantee a clean rebuild — otherwise
+    upsert only overwrites matching IDs, and chunks from a previous
+    run with a different chunk_size silently accumulate alongside
+    the new ones (different chunk_size = different chunk_index
+    sequence = different IDs = no collision = no overwrite).
+    """
+    try:
+      self.chroma_client.delete_collection(COLLECTION_NAME)
+    except Exception:
+      pass  # collection may not exist yet on first run — fine
+    self.collection = self.chroma_client.get_or_create_collection(
+      name=COLLECTION_NAME,
+      metadata={"hnsw:space": "cosine"},
+    )
+    print(f"Reset ChromaDB collection: {COLLECTION_NAME}")
+    
+  def index_chunks(self, chunks: List[Chunk], batch_size: int = 256,force_reset:bool = True):
     """
     Index a list of chunks into both ChromaDB amd BM25.
 
@@ -139,6 +158,9 @@ class DualIndexer:
     """
     if not chunks:
       raise ValueError("chunks list must not be empty")
+    
+    if force_reset:
+      self.reset_collection()
     
     texts = [c.text for c in chunks]
     chunk_ids = [_make_chunk_id(c,i) for i,c in enumerate(chunks)]
