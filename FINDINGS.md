@@ -56,3 +56,24 @@ No confident dense-vs-hybrid comparison yet — baseline data is incomplete. Fin
 - Run a complete OpenAI evaluation pass across baseline, hybrid_512, hybrid_256, hybrid_1024 — these are the resume numbers.
 - Does context_precision actually improve with hybrid once measured on complete data, consistent with the Sprint 2 qualitative finding (5/5 questions)?
 - Does adding stopword filtering to BM25 measurably move precision/recall on natural-language queries like "What is the governing law?"
+
+### Model registry: aliases over deprecated stages
+
+MLflow deprecated stage-based model lifecycle management (None/Staging/
+Production/Archived) starting in MLflow 2.8/2.9 in favor of model version
+aliases — mutable named pointers (e.g. "champion") that can be reassigned
+to any version without requiring other versions to be archived first.
+Implemented using set_registered_model_alias() instead of the deprecated
+transition_model_version_stage().
+
+### Champion selection must exclude incomplete runs, not just deprioritize them
+
+Initial model registry design selected the best run by composite score
+alone. This is a real bug: a run with 70% data completion can produce a
+misleadingly high (or low) composite average — it is not on equal footing
+with a 100%-complete run, so it cannot be ranked against it at all, not
+just ranked lower. Fixed by logging a completeness fraction per RAGAS
+metric (rows scored successfully / total rows) and excluding any run
+below 100% completeness from champion consideration entirely, with a
+direct regression test confirming a partial run's higher composite score
+does not let it beat a complete run's lower one.
