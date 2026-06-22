@@ -13,7 +13,7 @@ RAGAS measures four dimensions of RAG quality , each catching a distinct failure
 
 These 4 metrics form a diagnostic grid: low precision + low recall means retrieval is fundamentally broken; high precision + recall but low faithfulness means the problem is in generation, not retrieval.
 """
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from ragas.run_config import RunConfig
 
@@ -50,7 +50,7 @@ def run_ragas_evaluation(
     answers: List[str],
     contexts: List[List[str]],
     ground_truths: List[str],
-) -> Dict[str,float]:
+) -> Tuple[Dict[str,float], Dict[str,float]]:
   """
   Run RAGAS evaluation using whichever LLM provider is active.
     Note: answer_relevancy is excluded when using Groq — RAGAS implements
@@ -85,22 +85,24 @@ def run_ragas_evaluation(
   # so partial-data runs are never mistaken for complete ones.
   result_df = result.to_pandas()
   total_rows = len(result_df)
-  for metric_name in ["faithfulness", "context_precision", "context_recall"]:
+
+  scores={}
+  completeness={}
+  metric_names = ["faithfulness","context_precision","context_recall"]
+  if "answer_relevancy" in result_df.columns:
+    metric_names.append("abswer_relevancy")
+  for metric_name in metric_names:
     if metric_name in result_df.columns:
       valid_count = result_df[metric_name].notna().sum()
+      fraction = valid_count/total_rows if total_rows > 0 else 0.0
+      completeness[f"{metric_name}_completeness"] = round(fraction, 4)
+
       if valid_count < total_rows:
         print(
           f"⚠️  {metric_name}: only {valid_count}/{total_rows} "
           f"questions scored successfully (rest failed/timed out)"
         )
 
-  scores = {
-    "faithfulness": round(float(result["faithfulness"]),4),
-    "context_precision": round(float(result["context_precision"]),4),
-    "context_recall": round(float(result["context_recall"]),4),
-  }
-  if "answer_relevancy" in result:
-    scores["answer_relevancy"] = round(float(result["answer_relevancy"]), 4)
-  scores["composite"] = round(sum(scores.values())/ len(scores),4)
+  scores[metric_name] = round(float(result_df[metric_name].mean()), 4)
 
-  return scores
+  return scores, completeness
