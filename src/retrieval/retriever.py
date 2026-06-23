@@ -75,16 +75,24 @@ class HybridRetriever:
   fused with Reciprocal Rank Fusion.
   """
 
-  def __init__(self,retrieval_k:int=10,top_k:int=5,rrf_k:int=60):
+  def __init__(self,retrieval_k:int=10,top_k:int=5,rrf_k:int=60, embedding_model:str = "sentence-transformers/all-MiniLM-L6-v2"):
     """
     Args:
         retrieval_k: How many  results to fetch from each retriever.
         top_k: Final number of chunks returned after fusion
         rrf_k: RRF dampening constant
+        rrf_k: RRF dampening constant
+        embedding_model: Must match whichever model built the ChromaDB
+        index currently loaded. Query embeddings and chunk embeddings
+        must come from the SAME model — mixing base-model queries
+        against fine-tuned-model chunks silently produces meaningless
+        similarity scores, since the two embedding spaces are not
+        aligned with each other even though both are 384-dim.
     """
     self.retrieval_k=retrieval_k
     self.top_k=top_k
     self.rrf_k=rrf_k
+    self.embedding_model = embedding_model
 
     self.chroma_client = chromadb.PersistentClient(
       path=CHROMA_PERSIST_DIR,
@@ -119,7 +127,7 @@ class HybridRetriever:
       )
     
   def _dense_search(self,query:str) -> List[Tuple[str,str,dict]]:
-    query_embedding = embed_query(query).tolist()
+    query_embedding = embed_query(query,model_name=self.embedding_model).tolist()
     results = self.collection.query(
       query_embeddings=[query_embedding],
       n_results=self.retrieval_k,

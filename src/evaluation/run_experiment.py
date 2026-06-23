@@ -116,6 +116,7 @@ def run_experiment(config: dict):
             retrieval_k=config["retrieval_k"],
             top_k=config["top_k"],
             rrf_k=config.get("rrf_k", 60),
+            embedding_model=config.get("embedding_model","sentence-transformers/all-MiniLM-L6-v2")
         )
         client = get_llm_client()
 
