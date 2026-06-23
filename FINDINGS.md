@@ -77,3 +77,15 @@ metric (rows scored successfully / total rows) and excluding any run
 below 100% completeness from champion consideration entirely, with a
 direct regression test confirming a partial run's higher composite score
 does not let it beat a complete run's lower one.
+
+### Fine-tuning result: held-out test set comparison
+
+Fine-tuned all-MiniLM-L6-v2 via PyTorch (MultipleNegativesRankingLoss,
+3 epochs, 10,050 train pairs from CUAD's train split). Evaluated on 200
+pairs from CUAD's test split — never seen during training or internal
+validation. Top-1 retrieval accuracy: base model 0.0550, fine-tuned
+0.1450 (+0.0900 absolute, ~2.6x relative improvement). This is the
+genuinely independent metric; internal validation MRR@10 during training
+(0.0721 -> 0.0767) moved less, likely due to a harder 1,116-way ranking
+task with many near-duplicate CUAD question templates acting as
+distractors.
