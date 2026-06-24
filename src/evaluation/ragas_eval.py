@@ -109,6 +109,8 @@ def run_ragas_evaluation(
           f"questions scored successfully (rest failed/timed out)"
         )
 
-  scores[metric_name] = round(float(result_df[metric_name].mean()), 4)
-
+      scores[metric_name] = round(float(result_df[metric_name].mean()), 4)
+  
+  scores["composite"] = round(sum(scores.values()) / len(scores), 4) if scores else 0.0
+  
   return scores, completeness
