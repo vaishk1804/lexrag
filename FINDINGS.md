@@ -89,3 +89,13 @@ genuinely independent metric; internal validation MRR@10 during training
 (0.0721 -> 0.0767) moved less, likely due to a harder 1,116-way ranking
 task with many near-duplicate CUAD question templates acting as
 distractors.
+
+### Contract corpus duplication bug, caught before it silently corrupted re-indexing
+
+After rebuilding data/cuad_eval/ for the train/test separation fix,
+data/cuad/ ended up with 1,013 files instead of the expected 510 —
+download_data.py's contract-saving step re-ran without first clearing
+the directory, so old and newly-saved copies of the same 510 contracts
+coexisted under different filenames. This was caught immediately because
+re-indexing produced 28,900 chunks instead of the expected ~14,492 — a
+2x discrepancy that didn't match any prior baseline.

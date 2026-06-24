@@ -33,15 +33,21 @@ def build_ragas_dataset(
     answers: List[str],
     contexts: List[List[str]],
     ground_truths: List[str],
+    max_context_chars: int = 3000,
 ) -> Dataset:
   """Build a HuggingFace Dataset in the format RAGAS expects."""
   assert len(questions) == len(answers) == len(contexts) ==len(ground_truths), (
     "Questions, answers, contexts, and ground_truths must all have equal length."
   )
+
+  truncated_contexts = [
+    [c[:max_context_chars] for c in ctx_list]
+    for ctx_list in contexts
+  ]
   return Dataset.from_dict({
     "question":questions,
     "answer": answers,
-    "contexts":contexts,
+    "contexts":truncated_contexts,
     "ground_truth":ground_truths,
   })
 

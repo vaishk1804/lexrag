@@ -108,6 +108,7 @@ def run_experiment(config: dict):
             data_dir=config.get("data_dir", "./data/cuad"),
             chunk_size=config["chunk_size"],
             chunk_overlap=config["chunk_overlap"],
+            embedding_model=config.get("embedding_model", "sentence-transformers/all-MiniLM-L6-v2"),
         )
 
         print(f"\n[2/3] Running retrieval ({config['retrieval_mode']}) + generation "

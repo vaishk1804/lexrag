@@ -1,0 +1,10 @@
+experiment_name: lexrag_experiments
+run_name: finetuned_hybrid_512
+chunk_size: 512
+chunk_overlap: 50
+retrieval_mode: hybrid
+retrieval_k: 10
+top_k: 5
+rrf_k: 60
+data_dir: ./data/cuad
+embedding_model: ./models/lexrag-embeddings
