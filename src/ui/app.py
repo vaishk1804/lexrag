@@ -5,9 +5,16 @@ Run with: streamlit run src/ui/app.py
 """
 import os
 import time
+import sys
 
 import streamlit as st
 from dotenv import load_dotenv
+
+# Streamlit runs this file directly rather than as a module, so the
+# project root isn't automatically on sys.path the way `python -m`
+# would put it. Add it explicitly so `from src...` imports resolve
+# correctly regardless of which directory streamlit is launched from.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 load_dotenv()
 
@@ -42,13 +49,13 @@ try:
   client = load_llm_client()
   st.success(f"Index loaded - {retriever.collection.count():,} contract chunks ready")
 except Exception as e:
-  st.error("Failed to load index: {e}\n\nRun ingestion first: `python -m src.ingestion.pipeline`")
+  st.error(f"Failed to load index: {e}\n\nRun ingestion first: `python -m src.ingestion.pipeline`")
   st.stop()
 
 st.subheader("Ask a question about the contracts")
 question = st.text_input(
   "Question",
-  placeholed="e.g. What are the termination conditions in this contract?",
+  placeholder="e.g. What are the termination conditions in this contract?",
   label_visibility="collapsed",
 )
 

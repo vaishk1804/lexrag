@@ -99,3 +99,28 @@ the directory, so old and newly-saved copies of the same 510 contracts
 coexisted under different filenames. This was caught immediately because
 re-indexing produced 28,900 chunks instead of the expected ~14,492 — a
 2x discrepancy that didn't match any prior baseline.
+
+### Critical bug: scores dict only captured the last metric (affected ALL prior runs)
+
+run_ragas_evaluation's metric-scoring loop had scores[metric_name] = ...
+indented one level outside the for loop, so it only executed once after
+the loop finished, using whatever metric_name was left over from the
+last iteration. This meant every experiment run from Day 11 onward only
+ever logged ONE of the three RAGAS metrics (whichever was last in
+metric_names — context_recall) to MLflow, despite all three printing
+correctly to the terminal during the run. Completeness tracking was
+unaffected (correctly inside the loop), which is how this was caught —
+the model registry's get_best_run returned composite=N/A despite a
+"complete" run, revealing the scores dict was missing two of three
+metrics. Fixed by moving the assignment inside the loop. This affects
+every prior MLflow run's logged composite score — only re-runs after
+this fix produce trustworthy composite values.
+
+### Recurring Groq 413 errors: context too large for per-minute token limit
+
+RAGAS's internal LLM judge calls embed full retrieved context in their
+prompts. Hybrid retrieval pulls longer/more context than dense-only,
+occasionally pushing a single request over Groq's free-tier 6000 TPM
+limit. Fixed by truncating each context chunk to 3000 characters before
+building the RAGAS dataset — a Groq free-tier constraint, not a project
+design limitation (OpenAI's higher limits don't require this).
